@@ -24,17 +24,24 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
+    /* --- FIX: FORCE DARK TEXT (MENGATASI CHROME DARK MODE) --- */
+    /* Memaksa teks menjadi gelap karena background kita paksa putih/terang */
+    .stApp, .stMarkdown, p, h1, h2, h3, h4, h5, h6, span, div, label, 
+    [data-testid="stMetricLabel"], [data-testid="stMetricValue"] {
+        color: #333333 !important;
+    }
+
     /* Background App */
     .stApp {
         background-color: #f8f9fa;
     }
 
-    /* Header Custom */
+    /* Header Custom (Pengecualian Warna Putih) */
     .app-header {
         background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);
         padding: 30px 20px;
         border-radius: 0 0 25px 25px;
-        color: white;
+        color: white !important; /* Force White */
         text-align: center;
         margin-bottom: 20px;
         box-shadow: 0 4px 15px rgba(46, 125, 50, 0.2);
@@ -45,12 +52,13 @@ st.markdown("""
         font-size: 28px;
         margin: 0;
         padding: 0;
-        color: white;
+        color: white !important; /* Force White */
     }
     .app-header p {
         font-size: 14px;
         opacity: 0.9;
         margin-top: 5px;
+        color: white !important; /* Force White */
     }
 
     /* Card Styling */
@@ -70,7 +78,7 @@ st.markdown("""
     /* Button Styling - Pill Shape */
     .stButton>button {
         background: #2E7D32;
-        color: white;
+        color: white !important; /* Force White */
         border-radius: 50px;
         border: none;
         height: 48px;
@@ -84,7 +92,7 @@ st.markdown("""
         transform: scale(1.02);
     }
     
-    /* Status Badges */
+    /* Status Badges (Pengecualian Warna Khusus) */
     .badge {
         padding: 15px;
         border-radius: 12px;
@@ -92,13 +100,13 @@ st.markdown("""
         margin-top: 10px;
         animation: fadeIn 0.5s;
     }
-    .badge-fresh { background-color: #e8f5e9; color: #1b5e20; border: 1px solid #c8e6c9; }
-    .badge-rotten { background-color: #ffebee; color: #b71c1c; border: 1px solid #ffcdd2; }
-    .badge-warning { background-color: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
+    .badge-fresh { background-color: #e8f5e9; color: #1b5e20 !important; border: 1px solid #c8e6c9; }
+    .badge-rotten { background-color: #ffebee; color: #b71c1c !important; border: 1px solid #ffcdd2; }
+    .badge-warning { background-color: #fff3e0; color: #e65100 !important; border: 1px solid #ffe0b2; }
 
     /* Typography */
-    h3 { font-size: 18px; font-weight: 600; color: #333; }
-    .small-text { font-size: 12px; color: #888; }
+    h3 { font-size: 18px; font-weight: 600; color: #333 !important; }
+    .small-text { font-size: 12px; color: #888 !important; }
     
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
