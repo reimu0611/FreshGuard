@@ -191,13 +191,13 @@ def get_vege_info(nama_input):
     # --- PERBAIKAN 3: Sesuaikan dengan Nama Kolom CSV Anda ---
     try:
         # Parsing shelf life (ambil angkanya saja, misal "7 days" -> 7)
-        life_str = str(data['shelf life'])
+        life_str = str(data['Shelf Life (days)'])
         max_life = int(''.join(filter(str.isdigit, life_str))) if any(c.isdigit() for c in life_str) else 7
 
         return {
-            "name": data['name'],
-            "storage": data['storage requirement'], # Sesuai kolom CSV Anda
-            "benefit": data['health benefit'],      # Sesuai kolom CSV Anda
+            "name": data['Name'],
+            "storage": data['Storage Requirements'], # Sesuai kolom CSV Anda
+            "benefit": data['Health Benefit'],      # Sesuai kolom CSV Anda
             "max_life": max_life
         }
     except KeyError as e:
