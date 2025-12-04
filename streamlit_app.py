@@ -25,7 +25,6 @@ st.markdown("""
     header {visibility: hidden;}
     
     /* --- FIX: FORCE DARK TEXT (MENGATASI CHROME DARK MODE) --- */
-    /* Memaksa teks menjadi gelap karena background kita paksa putih/terang */
     .stApp, .stMarkdown, p, h1, h2, h3, h4, h5, h6, span, div, label, 
     [data-testid="stMetricLabel"], [data-testid="stMetricValue"] {
         color: #333333 !important;
@@ -34,6 +33,29 @@ st.markdown("""
     /* Background App */
     .stApp {
         background-color: #f8f9fa;
+    }
+
+    /* --- FIX: FILE UPLOADER BOX --- */
+    /* Mengubah warna background kotak upload menjadi putih terang & border hijau */
+    [data-testid="stFileUploader"] section {
+        background-color: #ffffff !important;
+        border: 2px dashed #4CAF50 !important;
+        border-radius: 15px !important;
+        padding: 20px !important;
+    }
+    
+    /* Mengubah warna teks instruksi di dalam kotak upload */
+    [data-testid="stFileUploader"] section > div, 
+    [data-testid="stFileUploader"] section span,
+    [data-testid="stFileUploader"] section small {
+        color: #555555 !important;
+    }
+
+    /* Mengubah tombol 'Browse files' menjadi hijau */
+    [data-testid="stFileUploader"] button {
+        background-color: #2E7D32 !important;
+        color: white !important;
+        border: none !important;
     }
 
     /* Header Custom (Pengecualian Warna Putih) */
