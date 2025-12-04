@@ -114,7 +114,7 @@ st.markdown("""
 @st.cache_data
 def load_csv_data():
     try:
-        df = pd.read_csv("OCR dataset.xlsx - in.csv")
+        df = pd.read_csv("OCR dataset.csv")
         return df
     except FileNotFoundError:
         return None
@@ -158,26 +158,50 @@ translation_map = {
     "Wortel": "Carrot", "Okra": "Okra"
 }
 
+# --- PERBAIKAN 1: Mapping Otomatis (Ignore Case) ---
+# Membuat dictionary baru agar "pare", "Pare", "PARE" otomatis terdeteksi
+translation_map_lower = {k.lower(): v for k, v in translation_map.items()}
+
 def get_vege_info(nama_input):
     """Mencari info detail sayuran dari CSV berdasarkan nama"""
     if df_sayuran is None: return None
     
+    # Bersihkan input
     nama_clean = nama_input.lower().strip()
-    nama_search = translation_map.get(nama_clean, nama_input)
+    
+    # --- PERBAIKAN 2: Gunakan map lowercase ---
+    # Cari nama Inggris-nya (misal input "pare" -> dapat "Bitter Fruit")
+    nama_search = translation_map_lower.get(nama_clean, nama_input)
 
-    # Cari di CSV
-    item = df_sayuran[df_sayuran['Name'].str.lower() == nama_search.lower()]
+    # Normalisasi nama kolom CSV agar aman (ubah ke lowercase & hilangkan spasi)
+    # Kita buat copy agar tidak merusak cache asli
+    df_temp = df_sayuran.copy()
+    df_temp.columns = df_temp.columns.str.strip().str.lower()
+
+    # Cari di kolom 'name'
+    item = df_temp[df_temp['name'].str.lower() == nama_search.lower()]
+    
     if item.empty:
-        item = df_sayuran[df_sayuran['Name'].str.lower().str.contains(nama_search.lower())]
+        # Coba cari partial match (misal "Tomato" ketemu di "Cherry Tomato")
+        item = df_temp[df_temp['name'].str.lower().str.contains(nama_search.lower())]
         if item.empty: return None
 
     data = item.iloc[0]
-    return {
-        "name": data['Name'],
-        "storage": data['Storage Requirements'],
-        "benefit": data['Health Benefits'],
-        "max_life": int(data['Shelf Life (days)'])
-    }
+    
+    # --- PERBAIKAN 3: Sesuaikan dengan Nama Kolom CSV Anda ---
+    try:
+        # Parsing shelf life (ambil angkanya saja, misal "7 days" -> 7)
+        life_str = str(data['shelf life'])
+        max_life = int(''.join(filter(str.isdigit, life_str))) if any(c.isdigit() for c in life_str) else 7
+
+        return {
+            "name": data['name'],
+            "storage": data['storage requirement'], # Sesuai kolom CSV Anda
+            "benefit": data['health benefit'],      # Sesuai kolom CSV Anda
+            "max_life": max_life
+        }
+    except KeyError as e:
+        st.error(f"Error Database: Kolom {e} tidak ditemukan di CSV.")
 
 def hitung_shelf_life_ocr(nama_input, tanggal_beli):
     data = get_vege_info(nama_input)
