@@ -379,6 +379,12 @@ with tab2:
                             
                             if info_sayur:
                                 st.markdown("### 💡 Rekomendasi AI")
+                                
+                                # --- TAMBAHAN: Tampilkan Shelf Life ---
+                                col_life, col_empty = st.columns([1, 1])
+                                with col_life:
+                                    st.metric("Estimasi Umur Simpan", f"{info_sayur['max_life']} Hari")
+                                
                                 st.info(f"**Cara Penyimpanan:**\n\n{info_sayur['storage']}")
                                 st.success(f"**Manfaat Kesehatan:**\n\n{info_sayur['benefit']}")
                             else:
