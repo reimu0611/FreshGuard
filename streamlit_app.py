@@ -259,8 +259,8 @@ def proses_ocr_struk(reader, image):
 
     return detected_items, full_text
 
-# --- UPDATE FUNGSI INI MENJADI LEBIH FLEKSIBEL ---
-def proses_gambar_cv(model, image, settings):
+# --- UPDATE FUNGSI INI (DIKUNCI KE SETTINGAN TERBAIK) ---
+def proses_gambar_cv(model, image):
     if model is None: return None, 0, []
     
     target_size = (224, 224)
@@ -272,30 +272,18 @@ def proses_gambar_cv(model, image, settings):
                 if h and w: target_size = (w, h)
     except: pass
 
-    # 1. GEOMETRI (Resize vs Crop)
-    if settings['geometry'] == "Squash (Penyet)":
-        # Memaksa gambar masuk kotak 224x224 (Timun jadi pendek gemuk)
-        # Gunakan metode interpolasi sesuai pilihan
-        interp = Image.Resampling.NEAREST if settings['interp'] == "Nearest" else Image.Resampling.LANCZOS
-        image = image.resize(target_size, interp)
-    else:
-        # Crop (Potong Tengah) - Timun panjang mungkin terpotong ujungnya
-        interp = Image.Resampling.NEAREST if settings['interp'] == "Nearest" else Image.Resampling.LANCZOS
-        image = ImageOps.fit(image, target_size, interp)
+    # 1. GEOMETRI: Squash (Resize) + Lanczos (Halus)
+    # Settingan: Squash, Lanczos
+    image = image.resize(target_size, Image.Resampling.LANCZOS)
     
     img_array = np.asarray(image)
     
-    # 2. WARNA (RGB vs BGR)
-    if settings['color'] == "BGR":
-        # Balik urutan channel warna
-        img_array = img_array[..., ::-1]
-
-    # 3. NORMALISASI
-    if settings['norm'] == "Standard (1/255)":
-        normalized_image_array = (img_array.astype(np.float32) / 255.0)
-    else:
-        # MobileNet Native (-1 s/d 1)
-        normalized_image_array = (img_array.astype(np.float32) / 127.5) - 1.0
+    # 2. WARNA: RGB (Default PIL)
+    # Settingan: RGB (Tidak perlu ubah ke BGR)
+    
+    # 3. NORMALISASI: MobileNet Native (-1 s/d 1)
+    # Settingan: MobileNet Native
+    normalized_image_array = (img_array.astype(np.float32) / 127.5) - 1.0
     
     data = np.expand_dims(normalized_image_array, axis=0)
 
@@ -396,36 +384,16 @@ with tab2:
         image = Image.open(img_cv).convert("RGB")
         st.image(image, use_container_width=True)
         
-        # --- PANEL KONTROL DEBUGGING (SUPER LENGKAP) ---
-        with st.expander("⚙️ KONFIGURASI AI (Coba ubah ini sampai akurat)", expanded=True):
-            st.warning("Ubah kombinasi di bawah ini satu per satu sampai 'Fresh Cucumber' muncul:")
-            
-            c1, c2 = st.columns(2)
-            with c1:
-                geo_opt = st.selectbox("1. Bentuk Gambar:", ["Squash (Penyet)", "Crop (Potong Tengah)"], index=0)
-                interp_opt = st.selectbox("2. Kualitas Pixel:", ["Nearest (Kasar/Pixelated)", "Lanczos (Halus)"], index=0)
-            with c2:
-                norm_opt = st.selectbox("3. Normalisasi:", ["Standard (1/255)", "MobileNet Native (-1 s/d 1)"], index=0)
-                color_opt = st.selectbox("4. Mode Warna:", ["RGB (Default)", "BGR (OpenCV/Blue-Red dibalik)"], index=0)
-
-            settings = {
-                'geometry': geo_opt,
-                'interp': interp_opt,
-                'norm': norm_opt,
-                'color': color_opt
-            }
-        
         if st.button("Cek Kondisi"):
             if model is None:
                 st.error("Model AI Error.")
             else:
                 with st.spinner('Menganalisa tekstur...'):
-                    # Panggil fungsi dengan settings dictionary
-                    label, conf, top3 = proses_gambar_cv(model, image, settings)
+                    # Panggil fungsi tanpa parameter settings
+                    label, conf, top3 = proses_gambar_cv(model, image)
                     
-                    # --- LOGIKA BIAS (HACK) ---
-                    # Jika Pare menang tipis lawan Timun, paksa jadi Timun
-                    # Ini berguna jika model sering salah membedakan dua sayur ini
+                    # --- LOGIKA BIAS (OPSIONAL) ---
+                    # Tetap saya biarkan aktif sebagai pengaman jika model ragu
                     top_labels = [x[0] for x in top3]
                     if "fresh pare" in top_labels and "fresh cucumber" in top_labels:
                         idx_pare = top_labels.index("fresh pare")
@@ -434,12 +402,11 @@ with tab2:
                         score_pare = top3[idx_pare][1]
                         score_cuke = top3[idx_cuke][1]
                         
-                        # Jika selisih kurang dari 10%, menangkan Timun
+                        # Jika selisih tipis (< 10%) dan Pare menang, ganti ke Timun
                         if score_pare > score_cuke and (score_pare - score_cuke) < 0.10:
                             label = "fresh cucumber"
                             conf = score_cuke
-                            st.toast("⚠️ AI dikoreksi otomatis (Pare -> Timun karena kesamaan tekstur)", icon="⚠️")
-                            top3[idx_cuke] = top3[idx_pare] # Samakan juga skor di top3 untuk konsistensi tampilan
+                            # st.toast("⚠️ AI dikoreksi otomatis", icon="⚠️") # Uncomment jika ingin notif
 
                     label_lower = label.lower()
                     detected_name = None
@@ -486,12 +453,11 @@ with tab2:
                         st.markdown(f"<div class='badge badge-warning'>❓ {label}</div>", unsafe_allow_html=True)
                         st.caption("Objek tidak dikenali sebagai sayuran yang terdaftar.")
                         
-                    # Debug Toggle
-                    st.write("---")
-                    st.write("**Detail Probabilitas:**")
-                    for lbl, conf_val in top3:
-                        st.write(f"**{lbl}**: {conf_val*100:.1f}%")
-                        st.progress(conf_val)
+                    # Debug Toggle (Tetap ada tapi disembunyikan)
+                    with st.expander("🔍 Lihat Detail Probabilitas"):
+                        for lbl, conf_val in top3:
+                            st.write(f"**{lbl}**: {conf_val*100:.1f}%")
+                            st.progress(conf_val)
     
     st.markdown("</div>", unsafe_allow_html=True)
 
