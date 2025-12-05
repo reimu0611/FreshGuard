@@ -423,6 +423,24 @@ with tab2:
                     # Panggil fungsi dengan settings dictionary
                     label, conf, top3 = proses_gambar_cv(model, image, settings)
                     
+                    # --- LOGIKA BIAS (HACK) ---
+                    # Jika Pare menang tipis lawan Timun, paksa jadi Timun
+                    # Ini berguna jika model sering salah membedakan dua sayur ini
+                    top_labels = [x[0] for x in top3]
+                    if "fresh pare" in top_labels and "fresh cucumber" in top_labels:
+                        idx_pare = top_labels.index("fresh pare")
+                        idx_cuke = top_labels.index("fresh cucumber")
+                        
+                        score_pare = top3[idx_pare][1]
+                        score_cuke = top3[idx_cuke][1]
+                        
+                        # Jika selisih kurang dari 10%, menangkan Timun
+                        if score_pare > score_cuke and (score_pare - score_cuke) < 0.10:
+                            label = "fresh cucumber"
+                            conf = score_cuke
+                            st.toast("⚠️ AI dikoreksi otomatis (Pare -> Timun karena kesamaan tekstur)", icon="⚠️")
+                            top3[idx_cuke] = top3[idx_pare] # Samakan juga skor di top3 untuk konsistensi tampilan
+
                     label_lower = label.lower()
                     detected_name = None
                     for v in VALID_VEGETABLES:
