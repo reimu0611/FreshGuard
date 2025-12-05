@@ -259,7 +259,7 @@ def proses_ocr_struk(reader, image):
 
     return detected_items, full_text
 
-# --- UPDATE FUNGSI INI ---
+# --- UPDATE FUNGSI INI AGAR SAMA PERSIS DENGAN TRAINING ---
 def proses_gambar_cv(model, image, norm_mode="Standard (1/255)"):
     if model is None: return None, 0, []
     
@@ -272,20 +272,19 @@ def proses_gambar_cv(model, image, norm_mode="Standard (1/255)"):
                 if h and w: target_size = (w, h)
     except: pass
 
-    # --- PERBAIKAN PENTING: GANTI FIT JADI RESIZE ---
-    # ImageOps.fit = Crop tengah (Bikin timun jadi kotak, AI bingung)
-    # image.resize = Squash/Penyet (Bentuk utuh dipertahankan)
-    image = image.resize(target_size, Image.Resampling.LANCZOS)
+    # 1. RESIZE: Gunakan NEAREST (Default Keras load_img)
+    # Lanczos/Bicubic membuat pixel terlalu halus, sedangkan Nearest menjaga pixel asli.
+    image = image.resize(target_size, Image.Resampling.NEAREST)
     
-    img_array = np.asarray(image)
+    # 2. CONVERT: Gunakan fungsi Keras asli agar struktur array sama
+    img_array = tf.keras.preprocessing.image.img_to_array(image)
     
-    # --- PILIHAN NORMALISASI (DEBUGGING) ---
+    # 3. NORMALISASI: Sesuai instruksi (img_array /= 255.0)
     if norm_mode == "Standard (1/255)":
-        # Range 0 s/d 1 (Sesuai rescale=1./255)
-        normalized_image_array = (img_array.astype(np.float32) / 255.0)
+        normalized_image_array = img_array / 255.0
     else:
-        # Range -1 s/d 1 (Sesuai MobileNetV2 native)
-        normalized_image_array = (img_array.astype(np.float32) / 127.5) - 1.0
+        # Opsi cadangan (MobileNet Native)
+        normalized_image_array = (img_array / 127.5) - 1.0
     
     data = np.expand_dims(normalized_image_array, axis=0)
 
@@ -388,11 +387,12 @@ with tab2:
         
         # --- MENU DEBUGGING ---
         with st.expander("⚙️ Pengaturan AI (Buka jika salah deteksi)"):
-            st.info("Coba ganti opsi ini jika hasil deteksi salah:")
+            st.info("Pengaturan disesuaikan dengan Training Pipeline Anda:")
             norm_option = st.radio(
                 "Mode Normalisasi:", 
                 ["Standard (1/255)", "MobileNet Native (-1 s/d 1)"],
-                index=0
+                index=0, # Default ke Standard karena Anda confirm pakai / 255.0
+                help="Pilih 'Standard' karena training menggunakan img_array /= 255.0"
             )
         
         if st.button("Cek Kondisi"):
@@ -458,13 +458,6 @@ with tab2:
                         for lbl, conf in top3:
                             st.write(f"**{lbl}**: {conf*100:.1f}%")
                             st.progress(conf)
-                        
-                        st.info("""
-                        **Tips jika salah deteksi:**
-                        1. Pastikan urutan `CLASS_NAMES` di kode sama persis dengan urutan abjad folder training Anda.
-                        2. Cek pencahayaan foto.
-                        3. Pastikan background foto bersih (polos).
-                        """)
     
     st.markdown("</div>", unsafe_allow_html=True)
 
