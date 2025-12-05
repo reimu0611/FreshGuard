@@ -176,7 +176,7 @@ VALID_VEGETABLES = [
     "tomato", "potato", "pare", "okra", "cucumber"
 ]
 
-CLASS_NAMES = [
+git CLASS_NAMES = [
     "fresh cucumber", "fresh okra", "fresh pare", "fresh potato", "fresh tomato", 
     "rotten cucumber", "rotten okra", "rotten pare", "rotten potato", "rotten tomato"
 ]
@@ -259,8 +259,8 @@ def proses_ocr_struk(reader, image):
 
     return detected_items, full_text
 
-# --- UPDATE FUNGSI INI AGAR SAMA PERSIS DENGAN TRAINING ---
-def proses_gambar_cv(model, image, norm_mode="Standard (1/255)"):
+# --- UPDATE FUNGSI INI MENJADI LEBIH FLEKSIBEL ---
+def proses_gambar_cv(model, image, settings):
     if model is None: return None, 0, []
     
     target_size = (224, 224)
@@ -272,19 +272,30 @@ def proses_gambar_cv(model, image, norm_mode="Standard (1/255)"):
                 if h and w: target_size = (w, h)
     except: pass
 
-    # 1. RESIZE: Gunakan NEAREST (Default Keras load_img)
-    # Lanczos/Bicubic membuat pixel terlalu halus, sedangkan Nearest menjaga pixel asli.
-    image = image.resize(target_size, Image.Resampling.NEAREST)
-    
-    # 2. CONVERT: Gunakan fungsi Keras asli agar struktur array sama
-    img_array = tf.keras.preprocessing.image.img_to_array(image)
-    
-    # 3. NORMALISASI: Sesuai instruksi (img_array /= 255.0)
-    if norm_mode == "Standard (1/255)":
-        normalized_image_array = img_array / 255.0
+    # 1. GEOMETRI (Resize vs Crop)
+    if settings['geometry'] == "Squash (Penyet)":
+        # Memaksa gambar masuk kotak 224x224 (Timun jadi pendek gemuk)
+        # Gunakan metode interpolasi sesuai pilihan
+        interp = Image.Resampling.NEAREST if settings['interp'] == "Nearest" else Image.Resampling.LANCZOS
+        image = image.resize(target_size, interp)
     else:
-        # Opsi cadangan (MobileNet Native)
-        normalized_image_array = (img_array / 127.5) - 1.0
+        # Crop (Potong Tengah) - Timun panjang mungkin terpotong ujungnya
+        interp = Image.Resampling.NEAREST if settings['interp'] == "Nearest" else Image.Resampling.LANCZOS
+        image = ImageOps.fit(image, target_size, interp)
+    
+    img_array = np.asarray(image)
+    
+    # 2. WARNA (RGB vs BGR)
+    if settings['color'] == "BGR":
+        # Balik urutan channel warna
+        img_array = img_array[..., ::-1]
+
+    # 3. NORMALISASI
+    if settings['norm'] == "Standard (1/255)":
+        normalized_image_array = (img_array.astype(np.float32) / 255.0)
+    else:
+        # MobileNet Native (-1 s/d 1)
+        normalized_image_array = (img_array.astype(np.float32) / 127.5) - 1.0
     
     data = np.expand_dims(normalized_image_array, axis=0)
 
@@ -385,23 +396,32 @@ with tab2:
         image = Image.open(img_cv).convert("RGB")
         st.image(image, use_container_width=True)
         
-        # --- MENU DEBUGGING ---
-        with st.expander("⚙️ Pengaturan AI (Buka jika salah deteksi)"):
-            st.info("Pengaturan disesuaikan dengan Training Pipeline Anda:")
-            norm_option = st.radio(
-                "Mode Normalisasi:", 
-                ["Standard (1/255)", "MobileNet Native (-1 s/d 1)"],
-                index=0, # Default ke Standard karena Anda confirm pakai / 255.0
-                help="Pilih 'Standard' karena training menggunakan img_array /= 255.0"
-            )
+        # --- PANEL KONTROL DEBUGGING (SUPER LENGKAP) ---
+        with st.expander("⚙️ KONFIGURASI AI (Coba ubah ini sampai akurat)", expanded=True):
+            st.warning("Ubah kombinasi di bawah ini satu per satu sampai 'Fresh Cucumber' muncul:")
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                geo_opt = st.selectbox("1. Bentuk Gambar:", ["Squash (Penyet)", "Crop (Potong Tengah)"], index=0)
+                interp_opt = st.selectbox("2. Kualitas Pixel:", ["Nearest (Kasar/Pixelated)", "Lanczos (Halus)"], index=0)
+            with c2:
+                norm_opt = st.selectbox("3. Normalisasi:", ["Standard (1/255)", "MobileNet Native (-1 s/d 1)"], index=0)
+                color_opt = st.selectbox("4. Mode Warna:", ["RGB (Default)", "BGR (OpenCV/Blue-Red dibalik)"], index=0)
+
+            settings = {
+                'geometry': geo_opt,
+                'interp': interp_opt,
+                'norm': norm_opt,
+                'color': color_opt
+            }
         
         if st.button("Cek Kondisi"):
             if model is None:
                 st.error("Model AI Error.")
             else:
                 with st.spinner('Menganalisa tekstur...'):
-                    # Panggil fungsi dengan parameter norm_option
-                    label, conf, top3 = proses_gambar_cv(model, image, norm_option)
+                    # Panggil fungsi dengan settings dictionary
+                    label, conf, top3 = proses_gambar_cv(model, image, settings)
                     
                     label_lower = label.lower()
                     detected_name = None
@@ -425,16 +445,12 @@ with tab2:
                             </div>
                             """, unsafe_allow_html=True)
                             
-                            # --- FITUR BARU: REKOMENDASI PENYIMPANAN ---
                             info_sayur = get_vege_info(detected_name)
-                            
                             if info_sayur:
                                 st.markdown("### 💡 Rekomendasi AI")
-                                
                                 col_life, col_empty = st.columns([1, 1])
                                 with col_life:
                                     st.metric("Estimasi Umur Simpan", f"{info_sayur['max_life']} Hari")
-                                
                                 st.info(f"**Cara Penyimpanan:**\n\n{info_sayur['storage']}")
                                 st.success(f"**Manfaat Kesehatan:**\n\n{info_sayur['benefit']}")
                             else:
@@ -447,17 +463,17 @@ with tab2:
                                 <p style='margin:0'>{detected_name} ({conf*100:.0f}%)</p>
                             </div>
                             """, unsafe_allow_html=True)
-                            st.warning("Sayuran ini terdeteksi mengalami pembusukan. Sebaiknya tidak dikonsumsi atau pisahkan bagian yang busuk.")
+                            st.warning("Sayuran ini terdeteksi mengalami pembusukan.")
                     else:
                         st.markdown(f"<div class='badge badge-warning'>❓ {label}</div>", unsafe_allow_html=True)
                         st.caption("Objek tidak dikenali sebagai sayuran yang terdaftar.")
                         
                     # Debug Toggle
-                    with st.expander("🔍 Lihat Detail Probabilitas (Debug)"):
-                        st.write("Apa yang dilihat AI?")
-                        for lbl, conf in top3:
-                            st.write(f"**{lbl}**: {conf*100:.1f}%")
-                            st.progress(conf)
+                    st.write("---")
+                    st.write("**Detail Probabilitas:**")
+                    for lbl, conf_val in top3:
+                        st.write(f"**{lbl}**: {conf_val*100:.1f}%")
+                        st.progress(conf_val)
     
     st.markdown("</div>", unsafe_allow_html=True)
 
