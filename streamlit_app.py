@@ -173,18 +173,18 @@ ocr_reader = load_ocr_reader()
 # ==========================================
 
 VALID_VEGETABLES = [
-    "tomato", "potato", "pare", "okra", "cucumber"
+    "tomato", "potato", "pare", "okra"
 ]
 
 CLASS_NAMES = [
-    "fresh cucumber", "fresh okra", "fresh pare", "fresh potato", "fresh tomato", 
-    "rotten cucumber", "rotten okra", "rotten pare", "rotten potato", "rotten tomato"
+    "fresh okra", "fresh pare", "fresh potato", "fresh tomato", 
+    "rotten okra", "rotten pare", "rotten potato", "rotten tomato"
 ]
 
 translation_map = {
     "Tomat": "Tomato", "Kentang": "Potato", "Pare": "Bitter Fruit", 
     "Bitter melon": "Bitter Fruit", "Bayam": "Spinach", "Paprika": "Bell Pepper", 
-    "Timun": "Cucumber", "Terong": "Eggplant", "Brokoli": "Broccoli", 
+    "Terong": "Eggplant", "Brokoli": "Broccoli", 
     "Wortel": "Carrot", "Okra": "Okra"
 }
 
@@ -259,7 +259,7 @@ def proses_ocr_struk(reader, image):
 
     return detected_items, full_text
 
-# --- UPDATE FUNGSI INI (DIKUNCI KE SETTINGAN TERBAIK) ---
+# --- KEMBALIKAN FUNGSI KE STANDARD AWAL ---
 def proses_gambar_cv(model, image):
     if model is None: return None, 0, []
     
@@ -272,18 +272,13 @@ def proses_gambar_cv(model, image):
                 if h and w: target_size = (w, h)
     except: pass
 
-    # 1. GEOMETRI: Squash (Resize) + Lanczos (Halus)
-    # Settingan: Squash, Lanczos
-    image = image.resize(target_size, Image.Resampling.LANCZOS)
+    # 1. GEOMETRI: Fit (Crop Tengah) - Standard Awal
+    image = ImageOps.fit(image, target_size, Image.Resampling.LANCZOS)
     
     img_array = np.asarray(image)
     
-    # 2. WARNA: RGB (Default PIL)
-    # Settingan: RGB (Tidak perlu ubah ke BGR)
-    
-    # 3. NORMALISASI: MobileNet Native (-1 s/d 1)
-    # Settingan: MobileNet Native
-    normalized_image_array = (img_array.astype(np.float32) / 127.5) - 1.0
+    # 2. NORMALISASI: Standard (0 s/d 1)
+    normalized_image_array = (img_array.astype(np.float32) / 255.0)
     
     data = np.expand_dims(normalized_image_array, axis=0)
 
@@ -392,21 +387,7 @@ with tab2:
                     # Panggil fungsi tanpa parameter settings
                     label, conf, top3 = proses_gambar_cv(model, image)
                     
-                    # --- LOGIKA BIAS (OPSIONAL) ---
-                    # Tetap saya biarkan aktif sebagai pengaman jika model ragu
-                    top_labels = [x[0] for x in top3]
-                    if "fresh pare" in top_labels and "fresh cucumber" in top_labels:
-                        idx_pare = top_labels.index("fresh pare")
-                        idx_cuke = top_labels.index("fresh cucumber")
-                        
-                        score_pare = top3[idx_pare][1]
-                        score_cuke = top3[idx_cuke][1]
-                        
-                        # Jika selisih tipis (< 10%) dan Pare menang, ganti ke Timun
-                        if score_pare > score_cuke and (score_pare - score_cuke) < 0.10:
-                            label = "fresh cucumber"
-                            conf = score_cuke
-                            # st.toast("⚠️ AI dikoreksi otomatis", icon="⚠️") # Uncomment jika ingin notif
+                    # Logika Bias Cucumber DIHAPUS
 
                     label_lower = label.lower()
                     detected_name = None
