@@ -176,7 +176,7 @@ VALID_VEGETABLES = [
     "tomato", "potato", "pare", "okra", "cucumber"
 ]
 
-git CLASS_NAMES = [
+CLASS_NAMES = [
     "fresh cucumber", "fresh okra", "fresh pare", "fresh potato", "fresh tomato", 
     "rotten cucumber", "rotten okra", "rotten pare", "rotten potato", "rotten tomato"
 ]
