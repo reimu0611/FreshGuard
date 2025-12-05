@@ -273,7 +273,11 @@ def proses_gambar_cv(model, image):
 
     image = ImageOps.fit(image, target_size, Image.Resampling.LANCZOS)
     img_array = np.asarray(image)
+    
+    # --- NORMALISASI SESUAI PERMINTAAN (MobileNetV2 dengan rescale=1./255) ---
+    # Pastikan tipe data float32 agar pembagian akurat
     normalized_image_array = (img_array.astype(np.float32) / 255.0)
+    
     data = np.expand_dims(normalized_image_array, axis=0)
 
     prediction = model.predict(data)
