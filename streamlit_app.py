@@ -259,7 +259,8 @@ def proses_ocr_struk(reader, image):
 
     return detected_items, full_text
 
-def proses_gambar_cv(model, image):
+# --- UPDATE FUNGSI INI ---
+def proses_gambar_cv(model, image, norm_mode="Standard (1/255)"):
     if model is None: return None, 0, []
     
     target_size = (224, 224)
@@ -271,12 +272,20 @@ def proses_gambar_cv(model, image):
                 if h and w: target_size = (w, h)
     except: pass
 
-    image = ImageOps.fit(image, target_size, Image.Resampling.LANCZOS)
+    # --- PERBAIKAN PENTING: GANTI FIT JADI RESIZE ---
+    # ImageOps.fit = Crop tengah (Bikin timun jadi kotak, AI bingung)
+    # image.resize = Squash/Penyet (Bentuk utuh dipertahankan)
+    image = image.resize(target_size, Image.Resampling.LANCZOS)
+    
     img_array = np.asarray(image)
     
-    # --- NORMALISASI SESUAI PERMINTAAN (MobileNetV2 dengan rescale=1./255) ---
-    # Pastikan tipe data float32 agar pembagian akurat
-    normalized_image_array = (img_array.astype(np.float32) / 255.0)
+    # --- PILIHAN NORMALISASI (DEBUGGING) ---
+    if norm_mode == "Standard (1/255)":
+        # Range 0 s/d 1 (Sesuai rescale=1./255)
+        normalized_image_array = (img_array.astype(np.float32) / 255.0)
+    else:
+        # Range -1 s/d 1 (Sesuai MobileNetV2 native)
+        normalized_image_array = (img_array.astype(np.float32) / 127.5) - 1.0
     
     data = np.expand_dims(normalized_image_array, axis=0)
 
@@ -365,7 +374,6 @@ with tab2:
     st.write("**Cek Kesegaran (AI)**")
     st.caption("Deteksi kualitas fisik sayuran secara real-time.")
     
-    # GANTI DARI SELECTBOX KE RADIO BUTTON
     input_method_cv = st.radio("Metode Input:", ["Upload File", "Kamera"], horizontal=True, key="cv_src")
     
     img_cv = None
@@ -378,12 +386,22 @@ with tab2:
         image = Image.open(img_cv).convert("RGB")
         st.image(image, use_container_width=True)
         
+        # --- MENU DEBUGGING ---
+        with st.expander("⚙️ Pengaturan AI (Buka jika salah deteksi)"):
+            st.info("Coba ganti opsi ini jika hasil deteksi salah:")
+            norm_option = st.radio(
+                "Mode Normalisasi:", 
+                ["Standard (1/255)", "MobileNet Native (-1 s/d 1)"],
+                index=0
+            )
+        
         if st.button("Cek Kondisi"):
             if model is None:
                 st.error("Model AI Error.")
             else:
                 with st.spinner('Menganalisa tekstur...'):
-                    label, conf, top3 = proses_gambar_cv(model, image)
+                    # Panggil fungsi dengan parameter norm_option
+                    label, conf, top3 = proses_gambar_cv(model, image, norm_option)
                     
                     label_lower = label.lower()
                     detected_name = None
@@ -408,13 +426,11 @@ with tab2:
                             """, unsafe_allow_html=True)
                             
                             # --- FITUR BARU: REKOMENDASI PENYIMPANAN ---
-                            # Ambil data dari CSV berdasarkan nama sayur yang terdeteksi
                             info_sayur = get_vege_info(detected_name)
                             
                             if info_sayur:
                                 st.markdown("### 💡 Rekomendasi AI")
                                 
-                                # --- TAMBAHAN: Tampilkan Shelf Life ---
                                 col_life, col_empty = st.columns([1, 1])
                                 with col_life:
                                     st.metric("Estimasi Umur Simpan", f"{info_sayur['max_life']} Hari")
