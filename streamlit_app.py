@@ -185,9 +185,11 @@ CLASS_NAMES = [
 
 translation_map = {
     "Tomat": "Tomato", "Kentang": "Potato", "Pare": "Bitter Fruit", 
-    "Bitter melon": "Bitter Fruit", "Bayam": "Spinach", "Paprika": "Bellpepper", 
+    "Bitter melon": "Bitter Fruit", "Bayam": "Spinach", 
+    "Paprika": "Bellpepper", # Pastikan tanpa spasi sesuai CSV
     "Terong": "Eggplant", "Brokoli": "Broccoli", 
-    "Wortel": "Carrot", "Okra": "Okra"
+    "Wortel": "Carrot", "Okra": "Okra",
+    "bellpepper": "Bellpepper" # Mapping eksplisit: input 'bellpepper' -> cari 'Bellpepper' di CSV
 }
 
 # --- PERBAIKAN 1: Mapping Otomatis (Ignore Case) ---
