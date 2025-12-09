@@ -203,36 +203,54 @@ def get_vege_info(nama_input):
     # Bersihkan input
     nama_clean = nama_input.lower().strip()
     
-    # Cari nama Inggris-nya
+    # Cari nama Inggris-nya dari mapping
     nama_search = translation_map_lower.get(nama_clean, nama_input)
 
     # Normalisasi nama kolom CSV agar aman (ubah ke lowercase & hilangkan spasi)
     df_temp = df_sayuran.copy()
     df_temp.columns = df_temp.columns.str.strip().str.lower()
+    
+    # --- PERBAIKAN: BERSIHKAN DATA CSV DARI SPASI TERSEMBUNYI ---
+    if 'name' in df_temp.columns:
+        # Pastikan semua data di kolom 'name' jadi string dan di-strip spasinya
+        df_temp['name'] = df_temp['name'].astype(str).str.strip()
 
-    # Cari di kolom 'name' (hasil lower dari 'Name')
+    # --- LOGIKA PENCARIAN BERTINGKAT (ROBUST SEARCH) ---
+    
+    # 1. Coba Exact Match (Pencarian Tepat)
     item = df_temp[df_temp['name'].str.lower() == nama_search.lower()]
     
+    # 2. Jika gagal, coba cari variasi spasi (Bellpepper <-> Bell Pepper)
+    if item.empty:
+        if "bellpepper" in nama_search.lower():
+            # Coba cari "Bell Pepper" (siapa tahu CSV pakai spasi)
+            item = df_temp[df_temp['name'].str.lower() == "bell pepper"]
+        elif "bell pepper" in nama_search.lower():
+            # Coba cari "Bellpepper" (siapa tahu CSV tanpa spasi)
+            item = df_temp[df_temp['name'].str.lower() == "bellpepper"]
+            
+    # 3. Jika masih gagal, coba Partial Match (Yang penting mengandung kata tsb)
     if item.empty:
         item = df_temp[df_temp['name'].str.lower().str.contains(nama_search.lower())]
-        if item.empty: return None
+
+    if item.empty: return None
 
     data = item.iloc[0]
     
     try:
         # AKSES KOLOM SESUAI HEADER CSV YANG SUDAH DI-LOWERCASE
-        # Header Asli: "Shelf Life (days)" -> Jadi: "shelf life (days)"
         life_str = str(data['shelf life (days)'])
         max_life = int(''.join(filter(str.isdigit, life_str))) if any(c.isdigit() for c in life_str) else 7
 
         return {
-            "name": data['name'],                               # Asli: Name
-            "storage": data['storage requirements'],            # Asli: Storage Requirements
-            "benefit": data['health benefits'],                 # Asli: Health Benefits (Pakai 's')
+            "name": data['name'],
+            "storage": data['storage requirements'],
+            "benefit": data['health benefits'],
             "max_life": max_life
         }
     except KeyError as e:
-        st.error(f"Error Database: Kolom {e} tidak ditemukan. Pastikan header CSV:// filepath: d:\kuliah sem 3\AI LETSGOOOOo\FreshGuard\streamlit_app.py")
+        st.error(f"Error Database: Kolom {e} tidak ditemukan.")
+        return None
 
 def hitung_shelf_life_ocr(nama_input, tanggal_beli):
     data = get_vege_info(nama_input)
