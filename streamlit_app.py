@@ -173,11 +173,13 @@ ocr_reader = load_ocr_reader()
 # ==========================================
 
 VALID_VEGETABLES = [
-    "tomato", "potato", "pare", "okra"
+    "bellpepper", "broccoli", "carrot", "eggplant", "lettuce", "okra", "pare", "potato", "tomato"
 ]
 
 CLASS_NAMES = [
-    "fresh okra", "fresh pare", "fresh potato", "fresh tomato", 
+    "fresh bellpepper", "fresh broccoli", "fresh carrot", "fresh eggplant", "fresh lettuce",
+    "fresh okra", "fresh pare", "fresh potato", "fresh tomato",
+    "rotten bellpepper", "rotten broccoli", "rotten carrot", "rotten eggplant", "rotten lettuce",
     "rotten okra", "rotten pare", "rotten potato", "rotten tomato"
 ]
 
