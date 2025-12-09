@@ -185,7 +185,7 @@ CLASS_NAMES = [
 
 translation_map = {
     "Tomat": "Tomato", "Kentang": "Potato", "Pare": "Bitter Fruit", 
-    "Bitter melon": "Bitter Fruit", "Bayam": "Spinach", "Paprika": "Bell Pepper", 
+    "Bitter melon": "Bitter Fruit", "Bayam": "Spinach", "Paprika": "Bellpepper", 
     "Terong": "Eggplant", "Brokoli": "Broccoli", 
     "Wortel": "Carrot", "Okra": "Okra"
 }
