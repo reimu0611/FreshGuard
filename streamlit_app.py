@@ -173,14 +173,12 @@ ocr_reader = load_ocr_reader()
 # ==========================================
 
 VALID_VEGETABLES = [
-    "bellpepper", "broccoli", "carrot", "eggplant", "lettuce", "okra", "pare", "potato", "tomato"
+    "apple", "banana", "bellpepper", "carrot", "cucumber", "orange", "potato", "tomato"
 ]
 
 CLASS_NAMES = [
-    "fresh bellpepper", "fresh broccoli", "fresh carrot", "fresh eggplant", "fresh lettuce",
-    "fresh okra", "fresh pare", "fresh potato", "fresh tomato",
-    "rotten bellpepper", "rotten broccoli", "rotten carrot", "rotten eggplant", "rotten lettuce",
-    "rotten okra", "rotten pare", "rotten potato", "rotten tomato"
+    "fresh apple", "fresh banana", "fresh bellpepper", "fresh carrot", "fresh cucumber", "fresh orange", "fresh potato", "fresh tomato",
+    "rotten apple", "rotten banana", "rotten bellpepper", "rotten carrot", "rotten cucumber", "rotten orange", "rotten potato", "rotten tomato"
 ]
 
 translation_map = {
@@ -189,7 +187,9 @@ translation_map = {
     "Paprika": "Bellpepper", # Pastikan tanpa spasi sesuai CSV
     "Terong": "Eggplant", "Brokoli": "Broccoli", 
     "Wortel": "Carrot", "Okra": "Okra",
-    "bellpepper": "Bellpepper" # Mapping eksplisit: input 'bellpepper' -> cari 'Bellpepper' di CSV
+    "bellpepper": "Bellpepper", # Mapping eksplisit: input 'bellpepper' -> cari 'Bellpepper' di CSV
+    "Apel": "Apple", "Pisang": "Banana", "Jeruk": "Orange",
+    "Timun": "Cucumber", "Mentimun": "Cucumber"
 }
 
 # --- PERBAIKAN 1: Mapping Otomatis (Ignore Case) ---
